@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f9d78">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Dividi Spese">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Dividi Spese</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mu:#6b7480;--ac:#0f9d78;--ac2:#e8f7f2;--bd:#e3e6ea;--neg:#d64545;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111418;--card:#1b2026;--tx:#eef1f4;--mu:#9aa4b0;--ac:#2fc79d;--ac2:#14322a;--bd:#2a313a;--neg:#ff7676}}
+:root[data-theme="dark"]{--bg:#111418;--card:#1b2026;--tx:#eef1f4;--mu:#9aa4b0;--ac:#2fc79d;--ac2:#14322a;--bd:#2a313a;--neg:#ff7676}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{display:flex;flex-direction:column;height:100%;max-width:560px;margin:0 auto}
+header{padding:16px 16px 8px;font-size:22px;font-weight:700}
+main{flex:1;overflow-y:auto;padding:8px 16px 16px}
+nav{display:flex;border-top:1px solid var(--bd);background:var(--card)}
+nav button{flex:1;padding:14px 4px;border:0;background:none;color:var(--mu);font:inherit;font-size:14px;font-weight:600}
+nav button.on{color:var(--ac)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mu{color:var(--mu);font-size:14px}
+.pos{color:var(--ac);font-weight:700}.neg{color:var(--neg);font-weight:700}
+.btn{border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:700;background:var(--ac);color:#fff;width:100%}
+.btn.sec{background:var(--ac2);color:var(--ac)}
+.x{border:0;background:none;color:var(--mu);font-size:20px;padding:4px 8px}
+input,select{width:100%;padding:12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit;margin:4px 0 10px}
+label.chk{display:flex;align-items:center;gap:10px;padding:6px 0}
+label.chk input{width:20px;height:20px;margin:0}
+h3{margin:14px 0 8px;font-size:15px;color:var(--mu);font-weight:600}
+</style></head>
+<body><div id="app"><header>💸 Dividi Spese</header><main id="m"></main>
+<nav><button id="t-spese" onclick="go('spese')">Spese</button><button id="t-saldi" onclick="go('saldi')">Saldi</button><button id="t-persone" onclick="go('persone')">Persone</button></nav></div>
+<script>
+(function(){try{
+const mk=s=>{const c=document.createElement("canvas");c.width=c.height=s;const x=c.getContext("2d");x.fillStyle="#0f9d78";x.fillRect(0,0,s,s);x.strokeStyle="#fff";x.lineWidth=s/28;x.lineCap="round";const m=s/2,r=s*.27;x.beginPath();x.arc(m,m,r,0,7);x.stroke();x.beginPath();x.moveTo(m-r/2,m);x.lineTo(m+r/2,m);x.moveTo(m,m-r/2);x.lineTo(m,m+r/2);x.stroke();return c.toDataURL("image/png")};
+const i192=mk(192),i512=mk(512),base=new URL(".",location.href).href;
+const man={name:"Dividi Spese",short_name:"Dividi Spese",id:base,start_url:base,scope:base,display:"standalone",orientation:"portrait",background_color:"#0f9d78",theme_color:"#0f9d78",icons:[{src:i192,sizes:"192x192",type:"image/png",purpose:"any"},{src:i512,sizes:"512x512",type:"image/png",purpose:"any"}]};
+const l=document.createElement("link");l.rel="manifest";l.href=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:"application/manifest+json"}));document.head.appendChild(l);
+const a=document.createElement("link");a.rel="apple-touch-icon";a.href=i192;document.head.appendChild(a);
+}catch(e){}})();
+let S={people:[],exp:[]},view="spese",adding=false;
+try{const r=localStorage.getItem("ds");if(r)S=JSON.parse(r)}catch(e){}
+const save=()=>{try{localStorage.setItem("ds",JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+const uid=()=>Math.random().toString(36).slice(2,9);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const eur=c=>(c/100).toLocaleString("it-IT",{style:"currency",currency:"EUR"});
+const nm=id=>{const p=S.people.find(x=>x.id===id);return p?esc(p.n):"?"};
+function balances(){const b={};S.people.forEach(p=>b[p.id]=0);
+ S.exp.forEach(e=>{b[e.payer]=(b[e.payer]||0)+e.amt;const n=e.parts.length,base=Math.floor(e.amt/n);let rem=e.amt-base*n;
+  e.parts.forEach(id=>{b[id]=(b[id]||0)-base-(rem-->0?1:0)})});return b}
+function transfers(){const b=balances(),cr=[],de=[];
+ for(const id in b){if(b[id]>0)cr.push([id,b[id]]);else if(b[id]<0)de.push([id,-b[id]])}
+ cr.sort((a,b)=>b[1]-a[1]);de.sort((a,b)=>b[1]-a[1]);
+ const t=[];let i=0,j=0;
+ while(i<de.length&&j<cr.length){const m=Math.min(de[i][1],cr[j][1]);t.push([de[i][0],cr[j][0],m]);de[i][1]-=m;cr[j][1]-=m;if(!de[i][1])i++;if(!cr[j][1])j++}
+ return t}
+function go(v){view=v;adding=false;render()}
+function addPerson(){const n=$("pn").value.trim();if(!n)return;S.people.push({id:uid(),n});save();render()}
+function delPerson(id){if(S.exp.some(e=>e.payer===id||e.parts.includes(id))){alert("Questa persona compare in alcune spese: eliminale prima.");return}
+ S.people=S.people.filter(p=>p.id!==id);save();render()}
+function saveExp(){const d=$("ed").value.trim(),amt=Math.round(parseFloat($("ea").value.replace(",","."))*100),
+ payer=$("ep").value,parts=[...document.querySelectorAll(".pc:checked")].map(x=>x.value);
+ if(!d||!(amt>0)||!parts.length){alert("Inserisci descrizione, importo e almeno un partecipante.");return}
+ S.exp.unshift({id:uid(),d,amt,payer,parts});save();adding=false;render()}
+function delExp(id){if(confirm("Eliminare questa spesa?")){S.exp=S.exp.filter(e=>e.id!==id);save();render()}}
+function resetAll(){if(confirm("Cancellare tutti i dati?")){S={people:[],exp:[]};save();render()}}
+function render(){
+ ["spese","saldi","persone"].forEach(v=>$("t-"+v).className=v===view?"on":"");
+ let h="";
+ if(view==="spese"){
+  if(S.people.length<2)h+=`<div class="card mu">Aggiungi almeno 2 persone nella scheda <b>Persone</b> per iniziare.</div>`;
+  else if(adding){
+   h+=`<div class="card"><label class="mu">Descrizione</label><input id="ed" placeholder="Es. Cena in pizzeria">
+   <label class="mu">Importo (€)</label><input id="ea" inputmode="decimal" placeholder="0,00">
+   <label class="mu">Chi ha pagato</label><select id="ep">${S.people.map(p=>`<option value="${p.id}">${esc(p.n)}</option>`).join("")}</select>
+   <div class="mu">Da dividere tra</div>${S.people.map(p=>`<label class="chk"><input type="checkbox" class="pc" value="${p.id}" checked>${esc(p.n)}</label>`).join("")}
+   <div style="height:8px"></div><button class="btn" onclick="saveExp()">Salva spesa</button><div style="height:8px"></div><button class="btn sec" onclick="adding=false;render()">Annulla</button></div>`;
+  } else h+=`<button class="btn" onclick="adding=true;render()">+ Nuova spesa</button><div style="height:12px"></div>`;
+  if(!adding){
+   if(!S.exp.length&&S.people.length>=2)h+=`<div class="mu" style="text-align:center;margin-top:24px">Nessuna spesa ancora.</div>`;
+   h+=S.exp.map(e=>`<div class="card row"><div><b>${esc(e.d)}</b><div class="mu">Pagato da ${nm(e.payer)} · ${e.parts.length} ${e.parts.length===1?"persona":"persone"}</div></div><div class="row"><b>${eur(e.amt)}</b><button class="x" onclick="delExp('${e.id}')">×</button></div></div>`).join("");
+   if(S.exp.length)h+=`<div class="mu" style="text-align:right">Totale: <b>${eur(S.exp.reduce((s,e)=>s+e.amt,0))}</b></div>`;
+  }
+ } else if(view==="saldi"){
+  const b=balances(),t=transfers();
+  h+=`<h3>Saldo di ciascuno</h3>`+(S.people.length?S.people.map(p=>{const v=b[p.id]||0;return `<div class="card row"><span>${esc(p.n)}</span><span class="${v>0?"pos":v<0?"neg":"mu"}">${v>0?"deve ricevere ":v<0?"deve dare ":"in pari "}${v?eur(Math.abs(v)):""}</span></div>`}).join(""):`<div class="mu">Nessuna persona.</div>`);
+  h+=`<h3>Chi deve a chi</h3>`+(t.length?t.map(x=>`<div class="card row"><span>${nm(x[0])} → ${nm(x[1])}</span><b>${eur(x[2])}</b></div>`).join(""):`<div class="mu">Tutto pareggiato 🎉</div>`);
+ } else {
+  h+=`<div class="card"><input id="pn" placeholder="Nome" onkeydown="if(event.key==='Enter')addPerson()"><button class="btn" onclick="addPerson()">Aggiungi persona</button></div>`;
+  h+=S.people.map(p=>`<div class="card row"><span>${esc(p.n)}</span><button class="x" onclick="delPerson('${p.id}')">×</button></div>`).join("");
+  h+=`<div style="height:16px"></div><button class="btn sec" onclick="resetAll()">Cancella tutti i dati</button>`;
+ }
+ $("m").innerHTML=h}
+render();
+</script></body></html>
